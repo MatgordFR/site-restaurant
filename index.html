@@ -3,23 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Durcissement : politique de sécurité du contenu stricte, tout est servi depuis le site.
+     Pas de script inline, pas de CDN, pas de tracker, pas de requête réseau sortante. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-src 'none'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'">
+<meta name="referrer" content="no-referrer">
+
 <title>Forno — Vera pizza napoletana au feu de bois · Nantes</title>
-<meta name="description" content="Forno, pizzeria napolitaine à Nantes. Pâte maturée 72 h, feu de bois à 485°C, cuisson en 90 secondes. San Marzano DOP, mozzarella di bufala. Démo de site — MatgordFR.">
+<meta name="description" content="Forno, pizzeria napolitaine à Nantes. Pâte maturée 72 h, feu de bois à 485 °C, cuisson en 90 secondes. San Marzano DOP, mozzarella di bufala. Démo de site — MatgordFR.">
 <meta name="theme-color" content="#17110D">
 <meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317110D'/%3E%3Cpath d='M16 5c-3 5 3 7 0 12-5-3-2-8-6-8 0 0-2 3-2 7a8 8 0 0 0 16 0c0-5-4-8-8-11z' fill='%23F0872B'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Forno">
+<meta property="og:url" content="https://matgordfr.github.io/site-restaurant/">
 <meta property="og:title" content="Forno — Vera pizza napoletana au feu de bois">
-<meta property="og:description" content="Pâte 72 h · feu de bois 485°C · cuisson 90 secondes. Une pizzeria napolitaine à Nantes.">
+<meta property="og:description" content="Pâte 72 h · feu de bois 485 °C · cuisson 90 secondes. Une pizzeria napolitaine à Nantes.">
+<meta property="og:image" content="https://matgordfr.github.io/site-restaurant/preview.jpg">
+<meta property="og:image:width" content="1560">
+<meta property="og:image:height" content="975">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Forno — Vera pizza napoletana au feu de bois">
+<meta name="twitter:description" content="Pâte 72 h · feu de bois 485 °C · cuisson 90 secondes. Une pizzeria napolitaine à Nantes.">
+<meta name="twitter:image" content="https://matgordfr.github.io/site-restaurant/preview.jpg">
+
+<link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/forno.css">
 </head>
 <body>
 
 <a class="skip" href="#carte">Aller à la carte</a>
 
-<!-- ambient ember glow driven by CSS -->
+<!-- fond vivant : nappe de braise (CSS) + étincelles (canvas, coupé si prefers-reduced-motion) -->
 <div class="ambient" aria-hidden="true"></div>
+<canvas class="embers-canvas" id="embersCanvas" aria-hidden="true"></canvas>
 
-<header class="nav" id="top">
+<header class="nav" id="top" data-nav>
   <div class="wrap nav-in">
     <a class="brand" href="#top" aria-label="Forno — accueil">
       <span class="brand-mark" aria-hidden="true">
@@ -27,16 +47,20 @@
       </span>
       <span class="brand-word">Forno</span>
     </a>
-    <nav class="nav-links" aria-label="Navigation principale">
+    <nav class="nav-links" id="navLinks" aria-label="Navigation principale">
       <a href="#obsession">Notre feu</a>
+      <a href="#pate">La pâte</a>
       <a href="#carte">La carte</a>
       <a href="#four">Le four</a>
       <a href="#venir">Venir</a>
     </nav>
-    <div class="nav-status" title="Le four est allumé">
+    <div class="nav-status" id="navStatus" title="Statut du service">
       <span class="dot" aria-hidden="true"></span>
-      <span>Four allumé</span>
+      <span class="nav-status-label" id="navStatusLabel">Four allumé</span>
     </div>
+    <button class="nav-burger" id="navBurger" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="navLinks">
+      <span class="burger-bar" aria-hidden="true"></span>
+    </button>
   </div>
 </header>
 
@@ -51,7 +75,7 @@
           <span class="l1">On ne triche pas</span>
           <span class="l2">avec le <em>feu.</em></span>
         </h1>
-        <p class="hero-lede">Une pâte vivante, maturée <strong>72 heures</strong>. Un four à bois qui monte à <strong>485°C</strong>. Une pizza qui cuit en <strong>90 secondes</strong> et sort le bord soufflé, tacheté de léopard. C'est tout. C'est Naples.</p>
+        <p class="hero-lede">Une pâte vivante, maturée <strong>72 heures</strong>. Un four à bois qui monte à <strong>485&nbsp;°C</strong>. Une pizza qui cuit en <strong>90 secondes</strong> et sort le bord soufflé, tacheté de léopard. C'est tout. C'est Naples.</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="#carte">Voir la carte</a>
           <a class="btn btn-ghost" href="#venir">Réserver une table</a>
@@ -68,28 +92,28 @@
         <div class="oven">
           <div class="oven-glow"></div>
           <svg class="oven-svg" viewBox="0 0 260 240" width="360" height="332">
-            <!-- socle -->
             <rect x="24" y="196" width="212" height="30" rx="6" fill="#2a1f16"/>
             <rect x="40" y="222" width="180" height="14" rx="4" fill="#1c140e"/>
-            <!-- dôme -->
             <path d="M40 200a90 78 0 0 1 180 0Z" fill="#241a12" stroke="#3a2a1c" stroke-width="3"/>
             <path d="M52 200a78 66 0 0 1 156 0Z" fill="#1a120c"/>
-            <!-- bouche du four -->
+            <!-- rangées de briques réfractaires -->
+            <g class="oven-bricks" stroke="#3a2a1c" stroke-width="1.4" fill="none" opacity=".5">
+              <path d="M70 176h120M64 160h132M74 144h112"/>
+              <path d="M96 184v-8M130 184v-8M164 184v-8M88 168v-8M130 168v-8M172 168v-8"/>
+            </g>
             <path class="oven-mouth" d="M92 200a38 30 0 0 1 76 0Z" fill="#0b0704"/>
-            <!-- flammes -->
             <g class="flames">
               <path class="fl fl1" d="M116 198c-6-14 4-20 2-30 8 6 12 16 8 30Z" fill="#F0872B"/>
               <path class="fl fl2" d="M130 198c-8-18 6-26 3-40 12 9 15 24 9 40Z" fill="#FF7A18"/>
               <path class="fl fl3" d="M146 198c-5-12 5-18 3-27 7 6 10 15 6 27Z" fill="#FFB24A"/>
             </g>
-            <!-- braises au sol -->
             <ellipse class="embers" cx="130" cy="197" rx="34" ry="5" fill="#FF7A18"/>
           </svg>
           <p class="oven-cap">Feu de bois de hêtre — allumé chaque matin à 10 h.</p>
         </div>
       </div>
     </div>
-    <a class="scroll-cue" href="#obsession" aria-label="Descendre">
+    <a class="scroll-cue" href="#obsession" aria-label="La cuisson — descendre">
       <span>La cuisson</span>
       <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     </a>
@@ -106,22 +130,74 @@
             <svg viewBox="0 0 40 40"><path d="M8 26c0-8 5-14 12-14s12 6 12 14" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M6 26h28" stroke="currentColor" stroke-width="2.4"/><path d="M14 12c0-3 2-5 6-5s6 2 6 5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>
           </span>
           <h3>La pâte</h3>
-          <p>Farine italienne, levain, eau, sel. Rien d'autre. Elle repose <strong>72 heures</strong> au froid : c'est ce qui la rend légère, digeste, et lui donne ce bord soufflé, l'<em>cornicione</em>.</p>
+          <p>Farine italienne, levain, eau, sel. Rien d'autre. Elle repose <strong>72 heures</strong> au froid : c'est ce qui la rend légère, digeste, et lui donne ce bord soufflé, le <em>cornicione</em>.</p>
         </article>
         <article class="pillar" data-reveal>
           <span class="p-ic" aria-hidden="true">
             <svg viewBox="0 0 40 40"><path d="M20 34c-7-9 4-13 2-22 9 6 13 17 8 22" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M14 34c-4-6 2-9 1-15 6 4 9 11 5 15" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>
           </span>
           <h3>Le feu</h3>
-          <p>Un vrai four à bois, en briques réfractaires. La voûte à <strong>485°C</strong> saisit la pizza en <strong>90 secondes</strong> — impossible à reproduire dans un four domestique.</p>
+          <p>Un vrai four à bois, en briques réfractaires. La voûte à <strong>485&nbsp;°C</strong> saisit la pizza en <strong>90 secondes</strong> — impossible à reproduire dans un four domestique.</p>
         </article>
         <article class="pillar" data-reveal>
           <span class="p-ic" aria-hidden="true">
             <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M20 7c-4 5-4 21 0 26M20 7c4 5 4 21 0 26M8 20h24" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>
           </span>
           <h3>Les produits</h3>
-          <p>Tomates <strong>San Marzano DOP</strong>, mozzarella <em>fior di latte</em> et <em>di bufala</em>, huile d'olive extra vierge, basilic frais. On achète peu de choses, mais les bonnes.</p>
+          <p>Tomates <strong>San Marzano DOP</strong>, mozzarella <em>fior di latte</em> et <em>di bufala</em>, huile d'olive vierge extra, basilic frais. On achète peu de choses, mais les bonnes.</p>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 72 HEURES — la vie de la pâte (interactif) ============ -->
+  <section class="pate section" id="pate">
+    <div class="wrap">
+      <div class="pate-head">
+        <div>
+          <p class="kicker" data-reveal>72 heures, minute par minute</p>
+          <h2 class="section-title" data-reveal>La pâte n'attend pas.<br>Elle travaille.</h2>
+        </div>
+        <p class="pate-note" data-reveal>Une bonne pâte napolitaine, ça ne se décide pas le matin pour le soir. Suivez-la sur trois jours — cliquez sur une étape.</p>
+      </div>
+
+      <div class="pate-lab" data-reveal>
+        <!-- rail des étapes -->
+        <ol class="pate-rail" id="pateRail" aria-label="Étapes de maturation de la pâte">
+          <li><button type="button" class="pate-step is-active" data-stage="0" aria-pressed="true"><span class="ps-t">0 h</span><span class="ps-n">Le pétrin</span></button></li>
+          <li><button type="button" class="pate-step" data-stage="1" aria-pressed="false"><span class="ps-t">2 h</span><span class="ps-n">Le pointage</span></button></li>
+          <li><button type="button" class="pate-step" data-stage="2" aria-pressed="false"><span class="ps-t">24 h</span><span class="ps-n">Le froid</span></button></li>
+          <li><button type="button" class="pate-step" data-stage="3" aria-pressed="false"><span class="ps-t">48 h</span><span class="ps-n">Les pâtons</span></button></li>
+          <li><button type="button" class="pate-step" data-stage="4" aria-pressed="false"><span class="ps-t">72 h</span><span class="ps-n">Au four</span></button></li>
+        </ol>
+        <div class="pate-railbar" aria-hidden="true"><span class="pate-railfill" id="pateFill"></span></div>
+
+        <div class="pate-body">
+          <!-- pâton illustré, évolue avec l'étape -->
+          <div class="pate-viz" aria-hidden="true">
+            <svg viewBox="0 0 240 200" width="300" height="250">
+              <ellipse cx="120" cy="150" rx="96" ry="26" fill="#0d0906" opacity=".55"/>
+              <g id="doughBall">
+                <ellipse class="dough-body" cx="120" cy="120" rx="58" ry="46" fill="#EDDCBE"/>
+                <ellipse class="dough-shade" cx="120" cy="132" rx="54" ry="26" fill="#d8c39c" opacity=".5"/>
+                <g class="dough-bubbles" id="doughBubbles"></g>
+                <g class="dough-flour" id="doughFlour"></g>
+              </g>
+              <ellipse class="dough-gloss" cx="102" cy="104" rx="20" ry="10" fill="#fff" opacity=".14"/>
+            </svg>
+          </div>
+
+          <div class="pate-info">
+            <p class="pate-hh" id="pateHH">0&nbsp;h · pétrissage</p>
+            <h3 class="pate-title" id="pateTitle">Quatre ingrédients, pas un de plus</h3>
+            <p class="pate-desc" id="pateDesc">Farine type «&nbsp;00&nbsp;», eau, sel, levain naturel. On pétrit lentement pour former le réseau de gluten — la pâte devient élastique, presque vivante sous la main.</p>
+            <dl class="pate-metrics">
+              <div><dt>Hydratation</dt><dd id="pateHydra">62&nbsp;%</dd></div>
+              <div><dt>Température</dt><dd id="pateTemp">22&nbsp;°C</dd></div>
+              <div><dt>Levée</dt><dd id="pateRise">—</dd></div>
+            </dl>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -137,51 +213,59 @@
         <p class="carte-note" data-reveal>Sept pizzas, deux desserts. On change quand le marché change. <span>Tarifs en euros, tout compris.</span></p>
       </div>
 
-      <div class="menu">
-        <div class="menu-col" data-reveal>
+      <div class="carte-filters" role="group" aria-label="Filtrer la carte">
+        <button type="button" class="chip is-active" data-filter="all" aria-pressed="true">Tout</button>
+        <button type="button" class="chip" data-filter="rosse" aria-pressed="false">Rosse</button>
+        <button type="button" class="chip" data-filter="bianche" aria-pressed="false">Bianche</button>
+        <button type="button" class="chip" data-filter="vege" aria-pressed="false">Végé</button>
+      </div>
+
+      <div class="menu" id="menu">
+        <div class="menu-col">
           <h3 class="menu-cat"><span class="cat-mark rosse" aria-hidden="true"></span>Rosse <span class="cat-sub">— base tomate</span></h3>
           <ul class="menu-list">
-            <li class="mi">
+            <li class="mi" data-cat="rosse">
               <div class="mi-top"><span class="mi-name">Marinara</span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">9</span></div>
               <p class="mi-desc">San Marzano DOP, ail, origan, huile d'olive, basilic. Pas de fromage — la plus ancienne, la plus honnête.</p>
             </li>
-            <li class="mi">
+            <li class="mi" data-cat="rosse">
               <div class="mi-top"><span class="mi-name">Margherita <span class="mi-tag">la classique</span></span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">11</span></div>
-              <p class="mi-desc">San Marzano, fior di latte, basilic frais, filet d'huile extra vierge.</p>
+              <p class="mi-desc">San Marzano, fior di latte, basilic frais, filet d'huile vierge extra.</p>
             </li>
-            <li class="mi">
+            <li class="mi" data-cat="rosse">
               <div class="mi-top"><span class="mi-name">Diavola</span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">14</span></div>
               <p class="mi-desc">'Nduja de Calabre piquante, fior di latte, San Marzano. Pour ceux qui aiment quand ça réveille.</p>
             </li>
-            <li class="mi">
+            <li class="mi" data-cat="rosse">
               <div class="mi-top"><span class="mi-name">Bufalina</span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">15</span></div>
               <p class="mi-desc">Mozzarella di bufala DOP posée à la sortie du four, San Marzano, basilic.</p>
             </li>
           </ul>
         </div>
 
-        <div class="menu-col" data-reveal>
+        <div class="menu-col">
           <h3 class="menu-cat"><span class="cat-mark bianche" aria-hidden="true"></span>Bianche <span class="cat-sub">— sans tomate</span></h3>
           <ul class="menu-list">
-            <li class="mi">
+            <li class="mi" data-cat="bianche">
               <div class="mi-top"><span class="mi-name">Quattro Formaggi</span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">15</span></div>
               <p class="mi-desc">Fior di latte, gorgonzola, pecorino, parmesan 24 mois. Un filet de miel si vous osez.</p>
             </li>
-            <li class="mi">
+            <li class="mi" data-cat="bianche">
               <div class="mi-top"><span class="mi-name">Boscaiola</span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">15</span></div>
               <p class="mi-desc">Champignons de Paris, saucisse fumée, crème, fior di latte. La plus réconfortante.</p>
             </li>
-            <li class="mi">
+            <li class="mi" data-cat="bianche vege">
               <div class="mi-top"><span class="mi-name">Ortolana <span class="mi-tag">végé</span></span><span class="mi-dots" aria-hidden="true"></span><span class="mi-price">13</span></div>
               <p class="mi-desc">Légumes grillés de saison, fior di latte, roquette et copeaux de parmesan à cru.</p>
             </li>
           </ul>
-          <div class="menu-dolci">
+          <div class="menu-dolci" data-cat="dolci">
             <h4>Pour finir</h4>
             <p><span>Tiramisu maison</span> <b>6</b> · <span>Cannolo à la ricotta</span> <b>6</b></p>
           </div>
         </div>
       </div>
+      <p class="carte-empty" id="carteEmpty" role="status" hidden>Rien dans cette catégorie… essayez une autre.</p>
     </div>
   </section>
 
@@ -191,7 +275,7 @@
       <div class="four-copy">
         <p class="kicker" data-reveal>90 secondes, montre en main</p>
         <h2 class="section-title" data-reveal>Regardez une Margherita cuire.</h2>
-        <p class="four-lede" data-reveal>À 485°C, tout se joue vite. Le bord gonfle, la mozzarella fond, et des taches de « léopard » signent une vraie cuisson napolitaine. Faites glisser — ou laissez le four faire.</p>
+        <p class="four-lede" data-reveal>À 485&nbsp;°C, tout se joue vite. Le bord gonfle, la mozzarella fond, et des taches de «&nbsp;léopard&nbsp;» signent une vraie cuisson napolitaine. Faites glisser — ou laissez le four faire.</p>
         <div class="four-controls" data-reveal>
           <button class="btn btn-primary" id="bakeBtn" type="button">Enfourner ▸</button>
           <label class="bake-slider">
@@ -210,13 +294,9 @@
                 <stop offset="0%" stop-color="#F6E7C4"/><stop offset="100%" stop-color="#EBD199"/>
               </radialGradient>
             </defs>
-            <!-- cornicione (bord) -->
             <circle class="crust" cx="150" cy="150" r="140" fill="#E7CFA0"/>
-            <!-- char du bord, révélé par la cuisson -->
             <g class="char-ring" id="charRing"></g>
-            <!-- base tomate -->
             <circle cx="150" cy="150" r="118" fill="#C4472F"/>
-            <!-- fromage -->
             <g id="cheese" class="cheese">
               <circle cx="120" cy="120" r="26" fill="url(#cheeseG)"/>
               <circle cx="188" cy="132" r="22" fill="url(#cheeseG)"/>
@@ -225,14 +305,14 @@
               <circle cx="196" cy="186" r="18" fill="url(#cheeseG)"/>
               <circle cx="150" cy="112" r="16" fill="url(#cheeseG)"/>
             </g>
-            <!-- taches de brûlure sur le fromage -->
             <g id="cheeseChar" class="cheese-char"></g>
-            <!-- basilic -->
             <g class="basil">
               <ellipse cx="128" cy="150" rx="9" ry="14" fill="#5E8C4A" transform="rotate(-20 128 150)"/>
               <ellipse cx="176" cy="164" rx="8" ry="13" fill="#6E9E5B" transform="rotate(25 176 164)"/>
               <ellipse cx="160" cy="126" rx="7" ry="11" fill="#5E8C4A" transform="rotate(10 160 126)"/>
             </g>
+            <!-- étincelles émises pendant la cuisson -->
+            <g id="sparks" class="sparks"></g>
           </svg>
           <div class="heat" id="heat" aria-hidden="true"></div>
         </div>
@@ -244,22 +324,77 @@
     </div>
   </section>
 
+  <!-- ============ LA PIZZAÏOLA (persona) ============ -->
+  <section class="maker section" id="maker">
+    <div class="wrap maker-in">
+      <div class="maker-portrait" data-reveal aria-hidden="true">
+        <svg viewBox="0 0 200 240" width="240" height="288" class="portrait-svg">
+          <rect x="0" y="0" width="200" height="240" rx="18" fill="#1f1710"/>
+          <circle cx="100" cy="150" r="120" fill="#261c14"/>
+          <!-- silhouette + toque -->
+          <ellipse cx="100" cy="120" rx="42" ry="46" fill="#3a2a1c"/>
+          <path d="M62 96a38 22 0 0 1 76 0Z" fill="#EDDCBE"/>
+          <rect x="60" y="92" width="80" height="14" rx="7" fill="#EDDCBE"/>
+          <ellipse cx="100" cy="126" rx="30" ry="34" fill="#c99b74"/>
+          <path d="M70 200c0-22 14-36 30-36s30 14 30 36Z" fill="#D6472F"/>
+          <circle cx="90" cy="122" r="3.4" fill="#241a12"/><circle cx="112" cy="122" r="3.4" fill="#241a12"/>
+          <path d="M92 140q8 6 16 0" fill="none" stroke="#241a12" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span class="portrait-badge">depuis 2016</span>
+      </div>
+      <div class="maker-copy" data-reveal>
+        <p class="kicker">Derrière le four</p>
+        <h2 class="section-title">Chiara Bruno,<br>pizzaïola.</h2>
+        <p class="maker-lede">«&nbsp;J'ai appris à Naples, dans une pizzeria de quartier où le four ne s'éteignait jamais. On m'a dit une chose&nbsp;: <em>la pâte, tu la respectes, ou elle te le fait payer.</em>&nbsp;»</p>
+        <p class="maker-body">Chiara a ouvert Forno rue des Olivettes en 2016. Elle façonne chaque pâton à la main, refuse de dépasser trente couverts par service, et forme elle-même les deux personnes qui l'accompagnent au four. Pas de carte à rallonge : ce qui est bon ce soir, et rien d'autre.</p>
+        <blockquote class="maker-quote">«&nbsp;Une pizza, c'est de la farine, du feu et de la patience. Le reste, c'est du marketing.&nbsp;»</blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AVIS ============ -->
+  <section class="avis section" id="avis">
+    <div class="wrap">
+      <p class="kicker" data-reveal>Ce qu'on en dit</p>
+      <h2 class="section-title" data-reveal>Trois avis, un même mot :<br><em>encore</em>.</h2>
+      <div class="avis-grid">
+        <figure class="avis-card" data-reveal>
+          <div class="avis-stars" role="img" aria-label="5 étoiles sur 5">★★★★★</div>
+          <blockquote>Le cornicione le plus aérien de Nantes. On a réservé pour la semaine prochaine avant même de partir.</blockquote>
+          <figcaption>— Léa M., <span>habituée du mardi</span></figcaption>
+        </figure>
+        <figure class="avis-card" data-reveal>
+          <div class="avis-stars" role="img" aria-label="5 étoiles sur 5">★★★★★</div>
+          <blockquote>La Diavola m'a réveillé les papilles pour trois jours. La 'nduja, la vraie. Je reviens rien que pour ça.</blockquote>
+          <figcaption>— Samir T., <span>première visite</span></figcaption>
+        </figure>
+        <figure class="avis-card" data-reveal>
+          <div class="avis-stars" role="img" aria-label="5 étoiles sur 5">★★★★★</div>
+          <blockquote>On sent qu'il n'y a pas dix mains en cuisine. Chaque pizza sort comme si c'était la seule. Rare.</blockquote>
+          <figcaption>— Claire &amp; Tom, <span>anniversaire</span></figcaption>
+        </figure>
+      </div>
+      <p class="avis-fine" data-reveal>Avis fictifs — ceci est une démonstration de site, pas un vrai établissement.</p>
+    </div>
+  </section>
+
   <!-- ============ VENIR ============ -->
   <section class="venir section" id="venir">
     <div class="wrap venir-in">
       <div class="venir-copy" data-reveal>
         <p class="kicker">Passez nous voir</p>
         <h2 class="section-title">On garde une table<br>près du four.</h2>
+        <p class="venir-status" id="venirStatus"><span class="vs-dot" aria-hidden="true"></span><span id="venirStatusText">Ouvert maintenant</span></p>
         <p class="venir-lede">On ne prend qu'une trentaine de couverts par service — le four ne va pas plus vite. Un conseil : réservez, surtout le week-end.</p>
-        <a class="btn btn-primary btn-lg" href="#top" aria-label="Réserver (démo)">Réserver une table</a>
+        <a class="btn btn-primary btn-lg" href="#top" aria-label="Réserver une table (démo)">Réserver une table</a>
         <p class="venir-fine">Démo : ce bouton ne prend pas de vraie réservation. En vrai, il ouvrirait un formulaire ou appellerait le service.</p>
       </div>
       <div class="venir-info" data-reveal>
         <dl class="info-grid">
           <div><dt>Adresse</dt><dd>12 rue des Olivettes<br>44000 Nantes</dd></div>
-          <div><dt>Horaires</dt><dd>Mar → Dim · 18h30 – 22h30<br><span class="closed">Fermé le lundi</span></dd></div>
+          <div><dt>Horaires</dt><dd>Mar → Dim · 18 h 30 – 22 h 30<br><span class="closed">Fermé le lundi</span></dd></div>
           <div><dt>Réservations</dt><dd>02 40 00 00 00<br>bonjour@forno-nantes.fr</dd></div>
-          <div><dt>À table</dt><dd>Sur place & à emporter<br>~30 couverts par service</dd></div>
+          <div><dt>À table</dt><dd>Sur place &amp; à emporter<br>~30 couverts par service</dd></div>
         </dl>
       </div>
     </div>
@@ -274,8 +409,9 @@
       <p>Vera pizza napoletana — Nantes. Pâte 72 h, feu de bois, produits DOP.</p>
     </div>
     <p class="foot-demo">
-      Site de démonstration — persona et données fictifs.<br>
-      Conçu &amp; codé par <a href="https://github.com/MatgordFR" rel="noopener">MatgordFR</a> · <a href="https://matgord.com" rel="noopener">matgord.com</a>
+      Site de démonstration — persona et données 100&nbsp;% fictifs.<br>
+      Servi 100&nbsp;% en local, sans tracker (CSP stricte).<br>
+      Conçu &amp; codé par <a href="https://github.com/MatgordFR" rel="noopener noreferrer">MatgordFR</a> · <a href="https://matgord.com" rel="noopener noreferrer">matgord.com</a>
     </p>
   </div>
 </footer>
